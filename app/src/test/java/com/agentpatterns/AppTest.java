@@ -9,7 +9,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AppTest {
     @Test void mainRunsWithoutError() {
-        System.setIn(new ByteArrayInputStream("World\nexit\n".getBytes()));
+        // Exits immediately so no real LLM call is made (no test credentials available).
+        System.setIn(new ByteArrayInputStream("exit\n".getBytes()));
         assertDoesNotThrow(() -> App.main(new String[] {}));
     }
 }

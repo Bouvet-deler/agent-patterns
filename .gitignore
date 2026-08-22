@@ -6,3 +6,6 @@ build
 
 # Ignore Kotlin plugin data
 .kotlin
+
+# Local secrets (Azure credentials etc.) - never commit
+.env

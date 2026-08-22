@@ -4,12 +4,21 @@
 package com.agentpatterns;
 
 import java.util.Scanner;
+
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class App implements CommandLineRunner {
+
+    private final ChatClient chatClient;
+
+    public App(ChatClient.Builder chatClientBuilder) {
+        this.chatClient = chatClientBuilder.build();
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(App.class, args);
     }
@@ -17,15 +26,19 @@ public class App implements CommandLineRunner {
     @Override
     public void run(String... args) {
         try (Scanner scanner = new Scanner(System.in)) {
-            System.out.println("Type your name and press Enter (type 'exit' to quit).");
+            System.out.println("Chat with the app (type 'exit' to quit).");
             while (true) {
-                System.out.print("What's your name? ");
-                String name = scanner.nextLine().trim();
-                if (name.equalsIgnoreCase("exit")) {
+                System.out.print("> ");
+                String input = scanner.nextLine().trim();
+                if (input.equalsIgnoreCase("exit")) {
                     System.out.println("Bye!");
                     break;
                 }
-                System.out.println("Hello, " + name + "!");
+                if (input.isEmpty()) {
+                    continue;
+                }
+                String response = chatClient.prompt(input).call().content();
+                System.out.println(response);
             }
         }
     }

@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Debug App",
+            "request": "launch",
+            "mainClass": "com.agentpatterns.App",
+            "projectName": "app",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}
