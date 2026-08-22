@@ -17,9 +17,16 @@ public class App implements CommandLineRunner {
     @Override
     public void run(String... args) {
         try (Scanner scanner = new Scanner(System.in)) {
-            System.out.print("What's your name? ");
-            String name = scanner.nextLine();
-            System.out.println("Hello, " + name + "!");
+            System.out.println("Type your name and press Enter (type 'exit' to quit).");
+            while (true) {
+                System.out.print("What's your name? ");
+                String name = scanner.nextLine().trim();
+                if (name.equalsIgnoreCase("exit")) {
+                    System.out.println("Bye!");
+                    break;
+                }
+                System.out.println("Hello, " + name + "!");
+            }
         }
     }
 }

@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AppTest {
     @Test void mainRunsWithoutError() {
-        System.setIn(new ByteArrayInputStream("World".getBytes()));
+        System.setIn(new ByteArrayInputStream("World\nexit\n".getBytes()));
         assertDoesNotThrow(() -> App.main(new String[] {}));
     }
 }
