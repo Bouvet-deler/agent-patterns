@@ -10,6 +10,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+import com.agentpatterns.agent.AgentPattern;
+import com.agentpatterns.agent.FileTools;
+import com.agentpatterns.baseline.BaselinePattern;
+import com.agentpatterns.workflow.ChainWorkflowPattern;
+
 @SpringBootApplication
 public class App implements CommandLineRunner {
 
@@ -26,6 +31,13 @@ public class App implements CommandLineRunner {
     @Override
     public void run(String... args) {
         try (Scanner scanner = new Scanner(System.in)) {
+            if (args.length > 0) {
+                Pattern pattern = resolvePattern(args[0]);
+                System.out.println("Running pattern: " + args[0]);
+                pattern.run(scanner);
+                return;
+            }
+
             System.out.println("Chat with the app (type 'exit' to quit).");
             while (true) {
                 System.out.print("> ");
@@ -41,5 +53,15 @@ public class App implements CommandLineRunner {
                 System.out.println(response);
             }
         }
+    }
+
+    private Pattern resolvePattern(String name) {
+        return switch (name) {
+            case "baseline" -> new BaselinePattern();
+            case "workflow" -> new ChainWorkflowPattern(chatClient);
+            case "agent" -> new AgentPattern(chatClient.mutate().defaultTools(new FileTools()).build());
+            default -> throw new IllegalArgumentException(
+                    "Unknown pattern '" + name + "'. Available: baseline, workflow, agent");
+        };
     }
 }

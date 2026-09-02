@@ -4,6 +4,9 @@
 # Ignore Gradle build output directory
 build
 
+# Ignore VS Code Java extension's own compiled output
+bin
+
 # Ignore Kotlin plugin data
 .kotlin
 

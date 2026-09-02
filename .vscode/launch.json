@@ -7,7 +7,38 @@
             "request": "launch",
             "mainClass": "com.agentpatterns.App",
             "projectName": "app",
-            "envFile": "${workspaceFolder}/.env"
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Debug App - baseline pattern",
+            "request": "launch",
+            "mainClass": "com.agentpatterns.App",
+            "projectName": "app",
+            "args": ["baseline"],
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Debug App - workflow pattern",
+            "request": "launch",
+            "mainClass": "com.agentpatterns.App",
+            "projectName": "app",
+            "args": ["workflow"],
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "java",
+            "name": "Debug App - agent pattern",
+            "request": "launch",
+            "mainClass": "com.agentpatterns.App",
+            "projectName": "app",
+            "args": ["agent"],
+            "envFile": "${workspaceFolder}/.env",
+            "console": "integratedTerminal"
         }
     ]
 }

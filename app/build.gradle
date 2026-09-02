@@ -45,11 +45,14 @@ application {
     mainClass = 'com.agentpatterns.App'
 }
 
-// Forward the terminal's stdin so the app can read interactive input.
+// Forward the terminal's stdin so the app can read interactive input, and run
+// from the repo root so relative paths like "file.txt" resolve consistently.
 tasks.named('run') {
     standardInput = System.in
+    workingDir = rootProject.projectDir
 }
 
 tasks.named('bootRun') {
     standardInput = System.in
+    workingDir = rootProject.projectDir
 }
