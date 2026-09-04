@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.util.Scanner;
 
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.lang.NonNull;
 
 import com.agentpatterns.Pattern;
 

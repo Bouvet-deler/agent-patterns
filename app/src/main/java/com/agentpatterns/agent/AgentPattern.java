@@ -11,9 +11,11 @@ import com.agentpatterns.Pattern;
 public class AgentPattern implements Pattern {
 
     private final ChatClient chatClient;
+    private  final FileTools fileTools;
 
-    public AgentPattern(ChatClient chatClient) {
+    public AgentPattern(ChatClient chatClient, FileTools fileTools) {
         this.chatClient = chatClient;
+        this.fileTools = fileTools;
     }
 
     @Override
@@ -29,7 +31,11 @@ public class AgentPattern implements Pattern {
             if (input.isEmpty()) {
                 continue;
             }
-            String response = chatClient.prompt(input).call().content();
+            String response = chatClient
+                    .prompt(input)
+                    .tools(fileTools)
+                    .call()
+                    .content();
             System.out.println(response);
         }
     }

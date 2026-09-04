@@ -59,7 +59,7 @@ public class App implements CommandLineRunner {
         return switch (name) {
             case "baseline" -> new BaselinePattern();
             case "workflow" -> new ChainWorkflowPattern(chatClient);
-            case "agent" -> new AgentPattern(chatClient.mutate().defaultTools(new FileTools()).build());
+            case "agent" -> new AgentPattern(chatClient, new FileTools()) {};
             default -> throw new IllegalArgumentException(
                     "Unknown pattern '" + name + "'. Available: baseline, workflow, agent");
         };
