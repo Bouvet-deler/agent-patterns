@@ -62,10 +62,11 @@ Inspired by Anthropic's [Building Effective Agents](https://www.anthropic.com/re
 
 | Pattern | Argument | Description | LLM Autonomy |
 |---|---|---|---|
-| **Interactive Menu** | *(none)* | Interactive CLI selector prompting you to choose a pattern (`1`, `2`, `3`). | N/A |
+| **Interactive Menu** | *(none)* | Interactive CLI selector prompting you to choose a pattern (`1`, `2`, `3`, `4`). | N/A |
 | **Baseline** | `baseline` | Deterministic file I/O with hardcoded commands (`read`, `write <text>`). Control benchmark. | None |
 | **Chain Workflow** | `workflow` | Fixed multi-step LLM pipeline with routing (intent classification), drafting, and proofreading. | Low (Sequence is code-defined) |
-| **Agent** | `agent` | Autonomous agent with tool calling ([FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java)). Decides when and how to read or write. | High (Model controls control flow) |
+| **Agent** | `agent` | Autonomous agent with tool calling ([FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java) and [KnowledgeTools.java](app/src/main/java/com/agentpatterns/agent/KnowledgeTools.java)). Decides when and how to read/write files or search Chuck Norris jokes. | High (Model controls control flow) |
+| **RAG** | `rag` | Classic Retrieval-Augmented Generation using an in-memory Chuck Norris jokes database ([InMemoryDocumentStore.java](app/src/main/java/com/agentpatterns/rag/InMemoryDocumentStore.java)). Code controls retrieval. | Low (Code retrieves & augments prompt) |
 
 ---
 
@@ -113,10 +114,11 @@ A preconfigured debug configuration is provided in [.vscode/launch.json](.vscode
    Select a pattern to run (type 'exit' to quit):
      1) baseline - Deterministic file I/O (no LLM)
      2) workflow - Routing + Prompt Chaining
-     3) agent    - Autonomous tool-calling agent
+     3) agent    - Autonomous agent with file & search tools
+     4) rag      - Retrieval-Augmented Generation (in-memory DB)
    > 
    ```
-4. Enter `1`, `2`, `3` (or the pattern name) to begin interacting.
+4. Enter `1`, `2`, `3`, `4` (or the pattern name) to begin interacting.
 
 ---
 
@@ -162,6 +164,11 @@ Use `./gradlew bootRun` with `-q --console=plain` to preserve clean terminal std
   ./gradlew bootRun -q --console=plain --args="agent"
   ```
 
+- **Run RAG Pattern:**
+  ```bash
+  ./gradlew bootRun -q --console=plain --args="rag"
+  ```
+
 ---
 
 ## Pattern Details & Usage Examples
@@ -190,13 +197,26 @@ Combines **Routing** with **Prompt Chaining**:
      - Application code deterministically writes updated content to [file.txt](file.txt).
 
 ### 3. Agent Pattern (`agent`)
-Code: [app/src/main/java/com/agentpatterns/agent/AgentPattern.java](app/src/main/java/com/agentpatterns/agent/AgentPattern.java) and [app/src/main/java/com/agentpatterns/agent/FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java)
+Code: [app/src/main/java/com/agentpatterns/agent/AgentPattern.java](app/src/main/java/com/agentpatterns/agent/AgentPattern.java), [app/src/main/java/com/agentpatterns/agent/FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java), and [app/src/main/java/com/agentpatterns/agent/KnowledgeTools.java](app/src/main/java/com/agentpatterns/agent/KnowledgeTools.java)
 
 Implements an autonomous agent using Spring AI's tool/function calling:
 - Tools provided:
   - `readFile()`: Reads the content of [file.txt](file.txt).
   - `writeFile(content)`: Updates [file.txt](file.txt) with new content.
-- The LLM dynamically decides whether to invoke tools, which tools to call, and what arguments to supply based on the user's prompt (e.g., *"Summarize the poem in file.txt and append a concluding verse"*).
+  - `searchKnowledgeBase(query)`: Queries the in-memory Chuck Norris jokes database.
+- The LLM dynamically decides whether to invoke tools, which tools to call, and what arguments to supply based on the user's prompt (e.g., *"Find a Chuck Norris joke about compilers and write it into file.txt"*).
+
+### 4. RAG Pattern (`rag`)
+Code: [app/src/main/java/com/agentpatterns/rag/RagPattern.java](app/src/main/java/com/agentpatterns/rag/RagPattern.java) and [app/src/main/java/com/agentpatterns/rag/InMemoryDocumentStore.java](app/src/main/java/com/agentpatterns/rag/InMemoryDocumentStore.java)
+
+Classic Retrieval-Augmented Generation where application code controls the flow:
+1. **Retrieve**: Java code performs keyword/token search against the in-memory database of Chuck Norris jokes and facts.
+2. **Augment**: The application injects the retrieved excerpts directly into the LLM prompt.
+3. **Generate**: The LLM synthesizes an answer strictly grounded on the retrieved context without hallucinating external facts.
+
+> **Key Learning Contrast:**
+> - In **RAG** (`rag`), *Java code* unconditionally queries the database and augments the prompt before the model runs.
+> - In **Agent** (`agent`), the *model itself* decides if and when to call `searchKnowledgeBase` via tool execution based on the conversation context.
 
 ---
 
@@ -229,16 +249,22 @@ agent_patterns/
 │       │   │   ├── Pattern.java                      # Common pattern interface
 │       │   │   ├── agent/
 │       │   │   │   ├── AgentPattern.java             # Autonomous agent with tools
-│       │   │   │   └── FileTools.java                # Spring AI @Tool definitions (file I/O)
+│       │   │   │   ├── FileTools.java                # Spring AI @Tool definitions (file I/O)
+│       │   │   │   └── KnowledgeTools.java           # Spring AI @Tool definitions (knowledge search)
 │       │   │   ├── baseline/
 │       │   │   │   └── BaselinePattern.java          # Deterministic baseline
+│       │   │   ├── rag/
+│       │   │   │   ├── InMemoryDocumentStore.java    # In-memory document DB with token/keyword search
+│       │   │   │   └── RagPattern.java               # Classic RAG pattern (retrieve -> augment -> generate)
 │       │   │   └── workflow/
 │       │   │       └── ChainWorkflowPattern.java     # Multi-step chain workflow
 │       │   └── resources/
 │       │       └── application.properties            # Spring application configuration
 │       └── test/
 │           └── java/com/agentpatterns/
-│               └── AppTest.java                      # Smoke tests
+│               ├── AppTest.java                      # Smoke tests for App & CLI menu
+│               └── rag/
+│                   └── InMemoryDocumentStoreTest.java # Tests for keyword search and ranking
 ├── file.txt                                          # Working file manipulated by the patterns
 └── gradle/
     └── libs.versions.toml                            # Version catalog (Spring Boot, Spring AI)

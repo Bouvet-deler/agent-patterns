@@ -13,4 +13,14 @@ class AppTest {
         System.setIn(new ByteArrayInputStream("exit\n".getBytes()));
         assertDoesNotThrow(() -> App.main(new String[] {}));
     }
+
+    @Test void ragPatternRunsWithoutError() {
+        System.setIn(new ByteArrayInputStream("exit\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {"rag"}));
+    }
+
+    @Test void menuSelectRagThenExit() {
+        System.setIn(new ByteArrayInputStream("4\nexit\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {}));
+    }
 }

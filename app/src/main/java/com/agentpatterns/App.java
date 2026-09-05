@@ -12,16 +12,25 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 import com.agentpatterns.agent.AgentPattern;
 import com.agentpatterns.agent.FileTools;
+import com.agentpatterns.agent.KnowledgeTools;
 import com.agentpatterns.baseline.BaselinePattern;
+import com.agentpatterns.rag.InMemoryDocumentStore;
+import com.agentpatterns.rag.RagPattern;
 import com.agentpatterns.workflow.ChainWorkflowPattern;
 
 @SpringBootApplication
 public class App implements CommandLineRunner {
 
     private final ChatClient chatClient;
+    private final InMemoryDocumentStore documentStore;
+    private final KnowledgeTools knowledgeTools;
+    private final FileTools fileTools;
 
     public App(ChatClient.Builder chatClientBuilder) {
         this.chatClient = chatClientBuilder.build();
+        this.documentStore = new InMemoryDocumentStore();
+        this.knowledgeTools = new KnowledgeTools(documentStore);
+        this.fileTools = new FileTools();
     }
 
     public static void main(String[] args) {
@@ -48,7 +57,8 @@ public class App implements CommandLineRunner {
             System.out.println("Select a pattern to run (type 'exit' to quit):");
             System.out.println("  1) baseline - Deterministic file I/O (no LLM)");
             System.out.println("  2) workflow - Routing + Prompt Chaining");
-            System.out.println("  3) agent    - Autonomous tool-calling agent");
+            System.out.println("  3) agent    - Autonomous agent with file & search tools");
+            System.out.println("  4) rag      - Retrieval-Augmented Generation (Chuck Norris DB)");
             System.out.print("> ");
 
             if (!scanner.hasNextLine()) {
@@ -68,6 +78,7 @@ public class App implements CommandLineRunner {
                 case "1", "baseline" -> "baseline";
                 case "2", "workflow" -> "workflow";
                 case "3", "agent" -> "agent";
+                case "4", "rag" -> "rag";
                 default -> null;
             };
 
@@ -77,7 +88,7 @@ public class App implements CommandLineRunner {
                 pattern.run(scanner);
                 break;
             } else {
-                System.out.println("Invalid selection. Please choose 1, 2, 3, or type 'exit'.");
+                System.out.println("Invalid selection. Please choose 1, 2, 3, 4, or type 'exit'.");
             }
         }
     }
@@ -86,9 +97,10 @@ public class App implements CommandLineRunner {
         return switch (name) {
             case "baseline" -> new BaselinePattern();
             case "workflow" -> new ChainWorkflowPattern(chatClient);
-            case "agent" -> new AgentPattern(chatClient, new FileTools()) {};
+            case "agent" -> new AgentPattern(chatClient, fileTools, knowledgeTools);
+            case "rag" -> new RagPattern(chatClient, documentStore);
             default -> throw new IllegalArgumentException(
-                    "Unknown pattern '" + name + "'. Available: baseline, workflow, agent");
+                    "Unknown pattern '" + name + "'. Available: baseline, workflow, agent, rag");
         };
     }
 }
