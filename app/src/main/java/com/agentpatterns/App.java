@@ -38,19 +38,46 @@ public class App implements CommandLineRunner {
                 return;
             }
 
-            System.out.println("Chat with the app (type 'exit' to quit).");
-            while (true) {
-                System.out.print("> ");
-                String input = scanner.nextLine().trim();
-                if (input.equalsIgnoreCase("exit")) {
-                    System.out.println("Bye!");
-                    break;
-                }
-                if (input.isEmpty()) {
-                    continue;
-                }
-                String response = chatClient.prompt(input).call().content();
-                System.out.println(response);
+            selectAndRunPattern(scanner);
+        }
+    }
+
+    private void selectAndRunPattern(Scanner scanner) {
+        while (true) {
+            System.out.println();
+            System.out.println("Select a pattern to run (type 'exit' to quit):");
+            System.out.println("  1) baseline - Deterministic file I/O (no LLM)");
+            System.out.println("  2) workflow - Routing + Prompt Chaining");
+            System.out.println("  3) agent    - Autonomous tool-calling agent");
+            System.out.print("> ");
+
+            if (!scanner.hasNextLine()) {
+                break;
+            }
+            String input = scanner.nextLine().trim();
+
+            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q")) {
+                System.out.println("Bye!");
+                break;
+            }
+            if (input.isEmpty()) {
+                continue;
+            }
+
+            String patternName = switch (input.toLowerCase()) {
+                case "1", "baseline" -> "baseline";
+                case "2", "workflow" -> "workflow";
+                case "3", "agent" -> "agent";
+                default -> null;
+            };
+
+            if (patternName != null) {
+                System.out.println("Running pattern: " + patternName);
+                Pattern pattern = resolvePattern(patternName);
+                pattern.run(scanner);
+                break;
+            } else {
+                System.out.println("Invalid selection. Please choose 1, 2, 3, or type 'exit'.");
             }
         }
     }

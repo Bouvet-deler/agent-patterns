@@ -12,8 +12,9 @@ import com.agentpatterns.Pattern;
 
 import jakarta.annotation.Nonnull;
 
-// Chain workflow: a fixed 2-step LLM pipeline (draft, then refine). The code
-// hardcodes the sequence; the LLM only fills in content at each step.
+// Workflow pattern combining routing (intent classification) and prompt
+// chaining (fixed multi-step pipeline). The code hardcodes the sequence; the
+// LLM only fills in content or classification decisions at each step.
 public class ChainWorkflowPattern implements Pattern {
 
     private static final Path FILE = Path.of("file.txt");
@@ -41,8 +42,8 @@ public class ChainWorkflowPattern implements Pattern {
 
     @Nonnull
     private String callChainWorkflow(String instruction) {
-        // Step 1: gate the user intent
-        final String gatePrompt = """
+        // Step 1: route the user intent
+        final String routerPrompt = """
             Instruction: %s
             Analyse the user intent. 
             
@@ -55,13 +56,13 @@ public class ChainWorkflowPattern implements Pattern {
             If the user wants to edit the file
             then write is true, else false.
             """.formatted(instruction);
-        final Gate gate = chatClient
-            .prompt(gatePrompt == null ? "skriv noe tull": gatePrompt)
+        final Route route = chatClient
+            .prompt(routerPrompt == null ? "skriv noe tull": routerPrompt)
             .call()
-            .entity(Gate.class);
+            .entity(Route.class);
 
-        // Step 2: check for chit chat 
-        if (gate != null && gate.chat) {
+        // Step 2: chat route
+        if (route != null && route.chat) {
             final String chatPrompt = """
                     Bare svar, ingeting annet
                     Content: %s
@@ -73,8 +74,8 @@ public class ChainWorkflowPattern implements Pattern {
             return response;
         } 
 
-        // Step 3: read only 
-        if (gate != null && gate.read) {
+        // Step 3: read route
+        if (route != null && route.read) {
             String content = read();
             final String readPrompt = """
                     Read back to the user what the content is.
@@ -87,8 +88,8 @@ public class ChainWorkflowPattern implements Pattern {
             return response;
         }
 
-        // Step 3: read and write
-        if (gate != null && gate.write) {
+        // Step 4: write route (prompt chain: draft -> refine)
+        if (route != null && route.write) {
             String content = read();
             final String draftPrompt = """
                 Current contents of file.txt:
@@ -128,7 +129,7 @@ public class ChainWorkflowPattern implements Pattern {
         return "Noe gikk galt";
     }
 
-    private record Gate(@Nonnull boolean chat, @Nonnull boolean read, @Nonnull boolean write){}
+    private record Route(@Nonnull boolean chat, @Nonnull boolean read, @Nonnull boolean write){}
 
     private record FileUpdate(String content, String reply) {
     }
