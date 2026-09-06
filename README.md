@@ -137,6 +137,16 @@ flowchart LR
 ```
 - **When to use**: Complex tasks where the required subtasks cannot be predicted upfront by code (e.g., software engineering multi-file refactoring, writing an entire report from ambiguous research).
 
+> **💡 The Coffee Shop Analogy: Parallelization vs. Orchestrator-Workers**
+>
+> When explaining this to teams, the **coffee shop / barista analogy** makes the distinction immediately intuitive:
+>
+> | Aspect | **Parallelization Workflow** | **Orchestrator-Workers Workflow** |
+> |---|---|---|
+> | **Who decides what to do?** | **Application Code** (deterministic task list) | **Orchestrator LLM** (dynamic plan based on input) |
+> | **The Barista Analogy** | **2 baristas working the espresso bar simultaneously.**<br/>The queue of drinks is already known (`latte`, `cappuccino`). Barista 1 makes drink A while Barista 2 makes drink B—they perform the **same kind of work in parallel**. Or, 3 baristas taste-test the same roast to vote on flavor notes. | **A Head Barista receiving an open-ended catering order.**<br/>*"I need a morning kickoff breakfast for 8 people with vegan and gluten-free needs."* The Head Barista decomposes the order on the fly: delegating **coffee prep** to Barista 1, **curating gluten-free sandwiches** to Barista 2, and **packing pastries** to Barista 3, then assembling the final breakfast package. |
+> | **Nature of subtasks** | Homogeneous / independent pieces of work split by code. | Heterogeneous / different specialized subtasks invented on the fly by an LLM planner. |
+
 ---
 
 #### 7. Evaluator-Optimizer Workflow
