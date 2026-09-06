@@ -6,59 +6,190 @@ An educational repository created for the **AI group in Tech 2** to explore, lea
 
 ## Purpose & Conceptual Overview: Chat vs. RAG vs. Workflows vs. Agents
 
-The goal of this repository is to serve as a hands-on learning and presentation resource for the Tech 2 AI group. In the rapidly evolving AI landscape, terms like *RAG*, *Agentic Workflows*, and *Autonomous Agents* are often conflated. This project provides concrete, runnable code examples that contrast where the control flow lives—in deterministic application code vs. inside the LLM's own decision loop.
+The goal of this repository is to serve as a hands-on learning and presentation resource for the **AI group in Tech 2**. In enterprise software development, terms like *RAG*, *Agentic Workflows*, and *Autonomous Agents* are frequently used interchangeably. However, they represent fundamentally different architectural paradigms with distinct trade-offs in predictability, control, latency, and cost.
 
-### How the Concepts Differ
+This conceptual overview is modeled on the architectural taxonomy established by Anthropic's research on [Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) and Spring AI's engineering guide on [Spring AI Agentic Patterns](https://spring.io/blog/2025/01/21/spring-ai-agentic-patterns).
 
-#### 1. Direct Chat / Prompting
-Simple text generation with no tools or external grounding.
+---
+
+### The Fundamental Architectural Divide: Workflows vs. Agents
+
+The most critical architectural question to ask when designing LLM applications is: **Where does the control flow live?**
+
+```mermaid
+flowchart TD
+    subgraph Workflows ["Agentic Workflows (Prescriptive Code Systems)"]
+        direction LR
+        WCode["Application Code<br/>(Deterministic Logic, Routes, Gates)"] --> WLLM["LLM Calls<br/>(Compute & Generation Units)"]
+    end
+
+    subgraph Agents ["Autonomous Agents (Dynamic Feedback Loops)"]
+        direction LR
+        AModel["LLM Decision Loop<br/>(Reasoning & Next Step Selection)"] --> ATools["Tools & Environment<br/>(APIs, DBs, File Systems)"]
+    end
+```
+
+1. **Agentic Workflows**: Systems where the sequence of steps, decision branching, and validation gates are hardcoded in **application code**. The LLM is used as an intelligent compute unit within discrete steps (e.g. classification, drafting, parsing).
+   - *Strengths*: Highly predictable, reproducible, testable with standard unit tests, low token overhead, easy to debug.
+   - *Best for*: Structured business operations, compliance pipelines, and well-defined multi-step tasks.
+
+2. **Autonomous Agents**: Systems where the **LLM itself directs its own process and tool usage**. Given a goal, the model iterates through a dynamic loop—evaluating observations, deciding whether to call another tool, and determining when the objective is met.
+   - *Strengths*: Flexible, open-ended problem solving, adaptable to unknown environments and branching paths.
+   - *Best for*: Research tasks, exploratory code editing, iterative troubleshooting, and conversational assistants with diverse capabilities.
+
+---
+
+### Conceptual Architecture of Core Patterns
+
+The following conceptual diagrams depict the foundational patterns described in the Spring AI and Anthropic architectural catalog, independent of any specific domain or storage mechanism.
+
+#### 1. Direct Prompting / Augmented LLM
+The baseline pattern: a single stateless exchange between user prompt and model weights, optionally enhanced with fixed system instructions.
 
 ```mermaid
 flowchart LR
     User["User Prompt"] --> LLM["LLM"] --> Response["Response"]
 ```
+- **When to use**: Quick Q&A, open-ended ideation, single-step content creation where no external factual grounding or actions are required.
+
+---
 
 #### 2. RAG (Retrieval-Augmented Generation)
-Deterministic retrieval of relevant documents before querying the LLM to ground the answer.
+Deterministic application code queries an external knowledge store (vector database, full-text index, or document repository) and injects the retrieved context directly into the prompt before the model runs.
 
 ```mermaid
 flowchart LR
-    User["User Prompt"] --> Retrieve["Retrieve Context<br/>(Vector DB / Docs)"] --> Augment["Augment Prompt<br/>(Query + Context)"] --> LLM["LLM"] --> Response["Grounded Response"]
+    Query["User Query"] --> Search["Retrieve Context<br/>(Vector DB / Document Index)"]
+    Search --> Augment["Augment Prompt<br/>(Query + Retrieved Context)"]
+    Augment --> LLM["LLM"]
+    LLM --> Response["Grounded Response"]
 ```
+- **When to use**: Answering questions based on proprietary knowledge, company policies, or dynamic datasets that cannot be embedded into model weights.
+- **Key distinction**: The LLM does *not* query the database; application code unconditionally retrieves facts and feeds them to the LLM.
 
-#### 3. Agentic Workflow (Routing + Prompt Chaining)
-A router classifies user intent and dispatches execution to dedicated downstream workflows. When editing, a multi-step prompt chain executes in a deterministic sequence.
+---
+
+#### 3. Prompt Chaining (Chain Workflow)
+Decomposes a complex task into a sequence of smaller, focused LLM calls where the output of each step becomes the input to the next. Application code can insert deterministic programmatic checks (validation gates) between steps.
 
 ```mermaid
 flowchart LR
-    Instruction["User Instruction"] --> Router{"Router<br/>(Classify Intent)"}
-    Router -->|"chat"| WChat["Chit-Chat Workflow"]
-    Router -->|"read"| WRead["Read Workflow"]
-    Router -->|"write"| Draft["1. Draft Step"] --> Refine["2. Refine Step"] --> FileWrite["3. Write file.txt"]
+    Input["Input"] --> Step1["LLM: Step 1<br/>(e.g., Draft)"]
+    Step1 --> Gate{"Code Gate<br/>(Validate)"}
+    Gate -->|"Valid"| Step2["LLM: Step 2<br/>(e.g., Polish & Translate)"]
+    Gate -->|"Invalid"| Fallback["Fallback / Retry"]
+    Step2 --> Output["Final Output"]
 ```
+- **When to use**: Tasks with sequential dependencies where dividing the problem into focused steps trades slight latency for significantly higher quality and reliability.
 
-#### 4. Autonomous Agent (Tool-Calling / ReAct Loop)
-The model dynamically decides if, when, and how to invoke tools based on intermediate observations.
+---
+
+#### 4. Routing Workflow
+An initial LLM call acts as a router/classifier to determine the nature of the input, then directs execution to specialized prompts, downstream workflows, or deterministic handlers.
 
 ```mermaid
 flowchart LR
-    Goal["Goal / Request"] --> Reason{"LLM Reasoning &<br/>Decision Loop"}
-    Reason <-->|"Execute tool & observe result"| Tools[("FileTools<br/>readFile / writeFile")]
-    Reason --> Done["Final Response"]
+    Input["User Request"] --> Router{"Router LLM<br/>(Classify Intent)"}
+    Router -->|"Type A"| HandlerA["Specialist Prompt A<br/>(e.g., Billing)"]
+    Router -->|"Type B"| HandlerB["Specialist Prompt B<br/>(e.g., Technical Support)"]
+    Router -->|"Type C"| HandlerC["Specialist Prompt C<br/>(e.g., General Inquiries)"]
+    HandlerA --> Out["Response"]
+    HandlerB --> Out
+    HandlerC --> Out
 ```
+- **When to use**: Complex systems serving diverse input types where specialized prompts and tailored context windows outperform a single bloated "jack-of-all-trades" prompt.
 
-| Concept | What It Does | Who Controls Flow? | Example Use Cases |
-|---|---|---|---|
-| **Simple Chat / Prompting** | Direct text-in, text-out generation using model weights. No tools, no external context. | Caller | Brainstorming, drafting text, simple Q&A. |
-| **RAG (Retrieval-Augmented Generation)** | Enhances prompts with relevant external documents (e.g. vector search or database queries) before asking the model. Read-only grounding without tool execution. | **Deterministic Code** (fetch -> augment prompt -> call LLM) | Documentation assistants, internal knowledge base Q&A, enterprise search. |
-| **Agentic Workflows (e.g., Prompt Chaining, Routing)** | Deterministic multi-step pipelines where code orchestrates multiple LLM calls with fixed logic (e.g., intent classifier -> draft -> proofread). | **Application Code** (predictable, reliable, structured) | Strict business workflows, structured data extraction, multi-stage review pipelines. |
-| **Autonomous Agents (Tool-Calling / ReAct)** | An LLM given tools/APIs that iteratively decides *if*, *when*, *which*, and *how many* tools to invoke to reach a goal. | **The LLM** (dynamic feedback loop based on observation) | Open-ended tasks, exploratory coding/file manipulation, automated troubleshooting. |
+---
 
-Inspired by Anthropic's [Building Effective Agents](https://www.anthropic.com/research/building-effective-agents) and the [Spring AI Agentic Patterns guide](https://spring.io/blog/2025/01/21/spring-ai-agentic-patterns), this repository demonstrates this progression by having different paradigms solve the same concrete problem: reading and updating [file.txt](file.txt).
+#### 5. Parallelization Workflow
+Running multiple LLM operations concurrently and combining their outputs programmatically. Anthropic and Spring AI identify two primary variations:
+1. **Sectioning**: Splitting a large task into independent subtasks executed in parallel.
+2. **Voting / Consensus**: Running the same prompt multiple times (or across different models) to evaluate consensus, guardrail safety, or multiple perspectives.
+
+```mermaid
+flowchart LR
+    Input["Task Input"] --> Split["Task Splitter"]
+    Split --> LLM1["Worker LLM 1<br/>(Perspective A)"]
+    Split --> LLM2["Worker LLM 2<br/>(Perspective B)"]
+    Split --> LLM3["Worker LLM 3<br/>(Perspective C)"]
+    LLM1 --> Aggregate["Programmatic Aggregator<br/>(Combine / Vote)"]
+    LLM2 --> Aggregate
+    LLM3 --> Aggregate
+    Aggregate --> Output["Synthesized Output"]
+```
+- **When to use**: Bulk processing of independent documents, multi-perspective reviews, safety guardrails, or when high throughput is required.
+
+---
+
+#### 6. Orchestrator-Workers Workflow
+A central orchestrator LLM dynamically analyzes a complex task, determines which subtasks need to be generated, delegates them to worker LLMs, and synthesizes the final result.
+
+```mermaid
+flowchart LR
+    Task["Complex Task"] --> Orch["Orchestrator LLM<br/>(Decompose & Plan)"]
+    Orch --> W1["Worker LLM 1"]
+    Orch --> W2["Worker LLM 2"]
+    Orch --> W3["Worker LLM 3"]
+    W1 --> Synth["Synthesizer LLM<br/>(Combine Results)"]
+    W2 --> Synth
+    W3 --> Synth
+    Synth --> Result["Comprehensive Result"]
+```
+- **When to use**: Complex tasks where the required subtasks cannot be predicted upfront by code (e.g., software engineering multi-file refactoring, writing an entire report from ambiguous research).
+
+---
+
+#### 7. Evaluator-Optimizer Workflow
+An iterative refinement loop involving two roles: a **Generator** producing a candidate solution, and an **Evaluator** critiquing the output against specific criteria and providing feedback until quality standards are met or maximum iterations are reached.
+
+```mermaid
+flowchart LR
+    Task["Task"] --> Gen["Generator LLM<br/>(Create Solution)"]
+    Gen --> Eval{"Evaluator LLM<br/>(Assess Criteria)"}
+    Eval -->|"Needs Improvement + Feedback"| Gen
+    Eval -->|"Pass / Approved"| Done["Refined Solution"]
+```
+- **When to use**: Tasks where evaluation criteria are clear and measurable (e.g., generating code that must pass a test suite, strict style compliance, or complex translation).
+
+---
+
+#### 8. Autonomous Agent (ReAct / Tool-Calling Loop)
+The model is placed in an interactive environment equipped with tools (APIs, file access, web queries). Given an objective, the LLM enters an autonomous loop: reasoning about its state, selecting a tool, observing tool output, and repeating until it decides the goal is accomplished.
+
+```mermaid
+flowchart LR
+    Goal["User Goal"] --> Loop{"LLM Decision Loop<br/>(Thought / Reasoning)"}
+    Loop -->|"Action: Call Tool"| Tools["Tool Execution<br/>(APIs, DBs, Code)"]
+    Tools -->|"Observation: Tool Result"| Loop
+    Loop -->|"Goal Reached"| Answer["Final Response"]
+```
+- **When to use**: Open-ended problem spaces where the sequence of steps cannot be predetermined, and the system must dynamically adapt to intermediate findings.
+
+---
+
+### Conceptual Comparison Matrix
+
+| Pattern | Control of Flow | Predictability | Latency & Token Cost | Best Used For |
+|---|---|---|---|---|
+| **Simple Prompting** | Caller (1:1) | High | Minimal (1 call) | General text generation, translation, Q&A. |
+| **RAG** | Application Code | High | Low (1 retrieval + 1 call) | Grounding responses on proprietary/external data. |
+| **Prompt Chaining** | Application Code | High | Predictable ($N$ calls) | Step-by-step transformations with validation. |
+| **Routing** | Application Code | High | Low (1 router + 1 specialist) | Directing diverse requests to specialized handlers. |
+| **Parallelization** | Application Code | High | Medium (Concurrent $N$ calls) | High-throughput batching, multi-perspective synthesis. |
+| **Orchestrator-Workers** | Orchestrator LLM + Code | Medium | High (Variable worker calls) | Complex tasks with unpredictable subtask decomposition. |
+| **Evaluator-Optimizer** | Code + Feedback Loop | Medium | Medium-to-High (Iterative calls) | Code generation, iterative proofreading, critique loops. |
+| **Autonomous Agent** | LLM (via Tool Calling) | Low-to-Medium | High (Unbounded loop without guards) | Open-ended exploration, autonomous troubleshooting, assistants. |
 
 ---
 
 ## Patterns Demonstrated in this Repo
+
+To make these architectural concepts tangible for the Tech 2 AI group, this repository provides runnable Java implementations of the progression:
+
+1. **Deterministic Baseline** (`baseline`): File I/O without any LLM.
+2. **Workflow: Routing + Prompt Chaining** (`workflow`): A router LLM classifies intent (`chat`, `read`, `write`), and the `write` branch executes a deterministic 2-step prompt chain (`Draft` $\rightarrow$ `Refine`) before writing to [file.txt](file.txt).
+3. **Autonomous Agent** (`agent`): The LLM is provided with file I/O tools ([FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java)) and a knowledge search tool ([KnowledgeTools.java](app/src/main/java/com/agentpatterns/agent/KnowledgeTools.java)), autonomously deciding whether and when to invoke them.
+4. **Classic RAG** (`rag`): Code deterministically queries an in-memory database ([InMemoryDocumentStore.java](app/src/main/java/com/agentpatterns/rag/InMemoryDocumentStore.java)) of Chuck Norris facts and injects them into the prompt.
 
 | Pattern | Argument | Description | LLM Autonomy |
 |---|---|---|---|
