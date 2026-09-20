@@ -13,7 +13,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import com.agentpatterns.agent.AgentPattern;
 import com.agentpatterns.agent.FileTools;
 import com.agentpatterns.agent.KnowledgeTools;
-import com.agentpatterns.baseline.BaselinePattern;
+import com.agentpatterns.chat.Chat;
 import com.agentpatterns.rag.InMemoryDocumentStore;
 import com.agentpatterns.rag.RagPattern;
 import com.agentpatterns.workflow.ChainWorkflowPattern;
@@ -55,7 +55,7 @@ public class App implements CommandLineRunner {
         while (true) {
             System.out.println();
             System.out.println("Select a pattern to run (type 'exit' to quit):");
-            System.out.println("  1) baseline - Deterministic file I/O (no LLM)");
+            System.out.println("  1) chat     - Direct prompt / simple chat (no tools)");
             System.out.println("  2) workflow - Routing + Prompt Chaining");
             System.out.println("  3) agent    - Autonomous agent with file & search tools");
             System.out.println("  4) rag      - Retrieval-Augmented Generation (Chuck Norris DB)");
@@ -75,7 +75,7 @@ public class App implements CommandLineRunner {
             }
 
             String patternName = switch (input.toLowerCase()) {
-                case "1", "baseline" -> "baseline";
+                case "1", "chat", "baseline" -> "chat";
                 case "2", "workflow" -> "workflow";
                 case "3", "agent" -> "agent";
                 case "4", "rag" -> "rag";
@@ -94,13 +94,13 @@ public class App implements CommandLineRunner {
     }
 
     private Pattern resolvePattern(String name) {
-        return switch (name) {
-            case "baseline" -> new BaselinePattern();
-            case "workflow" -> new ChainWorkflowPattern(chatClient);
-            case "agent" -> new AgentPattern(chatClient, fileTools, knowledgeTools);
-            case "rag" -> new RagPattern(chatClient, documentStore);
+        return switch (name.toLowerCase()) {
+            case "1", "chat", "baseline" -> new Chat(chatClient);
+            case "2", "workflow" -> new ChainWorkflowPattern(chatClient);
+            case "3", "agent" -> new AgentPattern(chatClient, fileTools, knowledgeTools);
+            case "4", "rag" -> new RagPattern(chatClient, documentStore);
             default -> throw new IllegalArgumentException(
-                    "Unknown pattern '" + name + "'. Available: baseline, workflow, agent, rag");
+                    "Unknown pattern '" + name + "'. Available: chat, workflow, agent, rag");
         };
     }
 }

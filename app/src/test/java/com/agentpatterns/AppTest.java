@@ -14,6 +14,21 @@ class AppTest {
         assertDoesNotThrow(() -> App.main(new String[] {}));
     }
 
+    @Test void chatPatternRunsWithoutError() {
+        System.setIn(new ByteArrayInputStream("exit\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {"chat"}));
+    }
+
+    @Test void baselineAliasRunsWithoutError() {
+        System.setIn(new ByteArrayInputStream("exit\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {"baseline"}));
+    }
+
+    @Test void menuSelectChatThenExit() {
+        System.setIn(new ByteArrayInputStream("1\nexit\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {}));
+    }
+
     @Test void ragPatternRunsWithoutError() {
         System.setIn(new ByteArrayInputStream("exit\n".getBytes()));
         assertDoesNotThrow(() -> App.main(new String[] {"rag"}));

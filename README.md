@@ -196,7 +196,7 @@ flowchart LR
 
 To make these architectural concepts tangible for the Tech 2 AI group, this repository provides runnable Java implementations of the progression:
 
-1. **Deterministic Baseline** (`baseline`): File I/O without any LLM.
+1. **Direct Prompting / Chat** (`chat`): Simple conversational chat with the LLM without tools, workflows, or RAG (the fundamental baseline).
 2. **Workflow: Routing + Prompt Chaining** (`workflow`): A router LLM classifies intent (`chat`, `read`, `write`), and the `write` branch executes a deterministic 2-step prompt chain (`Draft` $\rightarrow$ `Refine`) before writing to [file.txt](file.txt).
 3. **Autonomous Agent** (`agent`): The LLM is provided with file I/O tools ([FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java)) and a knowledge search tool ([KnowledgeTools.java](app/src/main/java/com/agentpatterns/agent/KnowledgeTools.java)), autonomously deciding whether and when to invoke them.
 4. **Classic RAG** (`rag`): Code deterministically queries an in-memory database ([InMemoryDocumentStore.java](app/src/main/java/com/agentpatterns/rag/InMemoryDocumentStore.java)) of Chuck Norris facts and injects them into the prompt.
@@ -204,7 +204,7 @@ To make these architectural concepts tangible for the Tech 2 AI group, this repo
 | Pattern | Argument | Description | LLM Autonomy |
 |---|---|---|---|
 | **Interactive Menu** | *(none)* | Interactive CLI selector prompting you to choose a pattern (`1`, `2`, `3`, `4`). | N/A |
-| **Baseline** | `baseline` | Deterministic file I/O with hardcoded commands (`read`, `write <text>`). Control benchmark. | None |
+| **Chat / Baseline** | `chat` (or `baseline`) | Direct prompting / simple conversational chat with the LLM (no tools, workflows, or retrieval). Baseline benchmark. | Direct prompt (No tools/chains) |
 | **Chain Workflow** | `workflow` | Fixed multi-step LLM pipeline with routing (intent classification), drafting, and proofreading. | Low (Sequence is code-defined) |
 | **Agent** | `agent` | Autonomous agent with tool calling ([FileTools.java](app/src/main/java/com/agentpatterns/agent/FileTools.java) and [KnowledgeTools.java](app/src/main/java/com/agentpatterns/agent/KnowledgeTools.java)). Decides when and how to read/write files or search Chuck Norris jokes. | High (Model controls control flow) |
 | **RAG** | `rag` | Classic Retrieval-Augmented Generation using an in-memory Chuck Norris jokes database ([InMemoryDocumentStore.java](app/src/main/java/com/agentpatterns/rag/InMemoryDocumentStore.java)). Code controls retrieval. | Low (Code retrieves & augments prompt) |
@@ -253,7 +253,7 @@ A preconfigured debug configuration is provided in [.vscode/launch.json](.vscode
 3. The interactive menu will prompt you in the Integrated Terminal:
    ```text
    Select a pattern to run (type 'exit' to quit):
-     1) baseline - Deterministic file I/O (no LLM)
+     1) chat     - Direct prompt / simple chat (no tools)
      2) workflow - Routing + Prompt Chaining
      3) agent    - Autonomous agent with file & search tools
      4) rag      - Retrieval-Augmented Generation (in-memory DB)
@@ -290,9 +290,9 @@ Use `./gradlew bootRun` with `-q --console=plain` to preserve clean terminal std
   ./gradlew bootRun -q --console=plain
   ```
 
-- **Run Baseline Pattern Directly:**
+- **Run Chat Pattern Directly:**
   ```bash
-  ./gradlew bootRun -q --console=plain --args="baseline"
+  ./gradlew bootRun -q --console=plain --args="chat"
   ```
 
 - **Run Workflow Pattern:**
@@ -314,14 +314,13 @@ Use `./gradlew bootRun` with `-q --console=plain` to preserve clean terminal std
 
 ## Pattern Details & Usage Examples
 
-### 1. Baseline Pattern (`baseline`)
-Code: [app/src/main/java/com/agentpatterns/baseline/BaselinePattern.java](app/src/main/java/com/agentpatterns/baseline/BaselinePattern.java)
+### 1. Chat Pattern (`chat` / `baseline`)
+Code: [app/src/main/java/com/agentpatterns/chat/Chat.java](app/src/main/java/com/agentpatterns/chat/Chat.java)
 
-A pure Java baseline without any LLM interactions.
-- Commands:
-  - `read` - Displays the contents of [file.txt](file.txt).
-  - `write <text>` - Overwrites [file.txt](file.txt) with the provided text.
-  - `exit` - Quits the pattern loop.
+A direct prompting / simple conversational chat baseline with no external tools or multi-step logic.
+- Directly submits user prompts to the LLM via Spring AI's `ChatClient`.
+- Useful for quick Q&A and serves as the baseline to contrast with routing, multi-step prompt chains, RAG, and autonomous agents.
+- Type any message to receive a direct response, or type `exit` to quit.
 
 ### 2. Workflow Pattern (`workflow`)
 Code: [app/src/main/java/com/agentpatterns/workflow/ChainWorkflowPattern.java](app/src/main/java/com/agentpatterns/workflow/ChainWorkflowPattern.java)
@@ -392,8 +391,8 @@ agent_patterns/
 │       │   │   │   ├── AgentPattern.java             # Autonomous agent with tools
 │       │   │   │   ├── FileTools.java                # Spring AI @Tool definitions (file I/O)
 │       │   │   │   └── KnowledgeTools.java           # Spring AI @Tool definitions (knowledge search)
-│       │   │   ├── baseline/
-│       │   │   │   └── BaselinePattern.java          # Deterministic baseline
+│       │   │   ├── chat/
+│       │   │   │   └── ChatPattern.java              # Direct prompting / simple chat baseline
 │       │   │   ├── rag/
 │       │   │   │   ├── InMemoryDocumentStore.java    # In-memory document DB with token/keyword search
 │       │   │   │   └── RagPattern.java               # Classic RAG pattern (retrieve -> augment -> generate)
