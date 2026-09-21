@@ -42,20 +42,27 @@ public class ChainWorkflowPattern implements Pattern {
 
     @Nonnull
     private String callChainWorkflow(String instruction) {
+
+        final String userQuery = "Query: %s".formatted(instruction);
+
+        final String prompt =  "Du er en flink assistent som alltid svarer på norsk!" + "\n" + userQuery;
+
         // Step 1: route the user intent
         final String routerPrompt = """
-            Instruction: %s
-            Analyse the user intent. 
-            
-            If the user only wants to chit chat
-            then chat is true, else false.
-            
-            If the user wants to read only
-            then read is true, else false.
+            %s
 
-            If the user wants to edit the file
-            then write is true, else false.
-            """.formatted(instruction);
+            Analyser brukerintensjonen. 
+            
+            Hvis brukeren kun vil chit chatte
+            sett chat til true, ellers false.
+            
+            Hvis brukeren vil lese filen
+            sett read til true, ellers false.
+
+            Hvis brukeren vil editere filen
+            sett write til true, ellers false.
+            """.formatted(prompt);
+
         final Route route = chatClient
             .prompt(routerPrompt == null ? "skriv noe tull": routerPrompt)
             .call()
@@ -63,12 +70,8 @@ public class ChainWorkflowPattern implements Pattern {
 
         // Step 2: chat route
         if (route != null && route.chat) {
-            final String chatPrompt = """
-                    Bare svar, ingeting annet
-                    Content: %s
-                    """;
             final String response = chatClient
-                    .prompt(chatPrompt == null ? "skriv noe tull": chatPrompt)
+                    .prompt(userQuery == null ? "skriv noe tull": prompt)
                     .call()
                     .content();
             return response;
@@ -78,9 +81,13 @@ public class ChainWorkflowPattern implements Pattern {
         if (route != null && route.read) {
             String content = read();
             final String readPrompt = """
-                    Read back to the user what the content is.
-                    Content: %s
-                    """.formatted(content);
+                    %s        
+
+                    Under Innhold er det som står skrevet i file.txt.
+                    Hvis Innhold er tomt, er fila tom.
+                    Innhold: %s
+                    """.formatted(prompt, content);
+            
             final String response = chatClient
                     .prompt(readPrompt == null ? "skriv noe tull": readPrompt)
                     .call()
@@ -90,37 +97,42 @@ public class ChainWorkflowPattern implements Pattern {
 
         // Step 4: write route (prompt chain: draft -> refine)
         if (route != null && route.write) {
-            String content = read();
-            final String draftPrompt = """
-                Current contents of file.txt:
-                ---
-                %s
-                ---
-                Instruction: %s
-                Produce the FULL new contents of file.txt. Respond with only the file
-                contents, no commentary or code fences. If the instruction asks to clear
-                or remove all text, respond with a completely empty response.
-                """.formatted(content, instruction);
-            final String draft = chatClient
-                .prompt(draftPrompt == null ? "Skriv noe tull" : draftPrompt)
-                .call()
-                .content();
 
-            final String updatePrompt = """
-                Proofread and lightly polish the following draft file contents (fix
-                typos, improve clarity), keeping the meaning and format intact. The
-                text may legitimately be empty - if so, keep it empty.
-                ---
+            String content = read();
+            
+            final String readPrompt = """
                 %s
+
+                Du skal lese det som står i innhold og fylle content kun med det brukeren etterspør.
+                Ber brukeren om å fjerne så skal Innhold være tom string.
+                Ber brukeren om å rette skrivefeil skal du kun gjøre det. 
+
+                Innhold: %s
+                """.formatted(prompt, content);
+
+            final Draft draft = chatClient
+                .prompt(readPrompt == null ? "skriv noe tull" : readPrompt)
+                .call()
+                .entity(Draft.class); 
+            
+            final String updatePrompt = """
+                %s
+
+                Din oppgave er 
+                1. Å fylle ut "content" med det som står under Innhold.
+                2. Skriv et kort, naturlig svar i første person til brukeren i "reply"
+
                 ---
-                Also write a short, natural, first-person reply to the user
-                acknowledging what you just did, matching their tone. The user's
-                original instruction was: "%s"
-                """.formatted(draft, instruction);
+
+                Innhold: 
+                %s
+                """.formatted(prompt, draft == null ? "": draft.content());
+            
             FileUpdate update = chatClient
                 .prompt(updatePrompt == null ? "skriv noe tull" : updatePrompt)
                 .call()
                 .entity(FileUpdate.class);
+
             if (update != null) {
                 write(update.content());
                 return update.reply();
@@ -131,6 +143,7 @@ public class ChainWorkflowPattern implements Pattern {
 
     private record Route(@Nonnull boolean chat, @Nonnull boolean read, @Nonnull boolean write){}
 
+    private record Draft(String content) {};
     private record FileUpdate(String content, String reply) {
     }
 
