@@ -21,10 +21,6 @@ public class AgentPattern implements Pattern {
         this.knowledgeTools = knowledgeTools;
     }
 
-    public AgentPattern(ChatClient chatClient, FileTools fileTools) {
-        this(chatClient, fileTools, null);
-    }
-
     @Override
     public void run(Scanner scanner) {
         System.out.println("Chat freely - the agent decides when to read/write file.txt or query the knowledge base ('exit' to quit).");
@@ -41,13 +37,10 @@ public class AgentPattern implements Pattern {
             if (input.isEmpty()) {
                 continue;
             }
-            var promptSpec = chatClient.prompt(input);
-            if (knowledgeTools != null) {
-                promptSpec = promptSpec.tools(fileTools, knowledgeTools);
-            } else {
-                promptSpec = promptSpec.tools(fileTools);
-            }
-            String response = promptSpec.call().content();
+            String response = chatClient.prompt(input)
+                                        .tools(fileTools, knowledgeTools)
+                                        .call()
+                                        .content();
             System.out.println(response);
         }
     }
