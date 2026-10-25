@@ -10,10 +10,10 @@ import com.agentpatterns.Pattern;
 import com.agentpatterns.rag.InMemoryDocumentStore.Document;
 
 /**
- * Classic RAG (Retrieval-Augmented Generation):
- * The application code deterministically retrieves relevant documents from an in-memory
- * database and injects them as grounded context into the prompt before calling the LLM.
- * The model does not select or invoke tools; Java code controls the entire retrieval flow.
+ * Klassisk RAG (Retrieval-Augmented Generation):
+ * Applikasjonskoden henter deterministisk relevante dokumenter fra en intern
+ * minnedatabase og injiserer dem som forankret kontekst i prompten før modellen kalles.
+ * Modellen velger eller kaller ikke verktøy selv; Java-koden styrer hele dataflyten.
  */
 public class RagPattern implements Pattern {
 
@@ -28,8 +28,8 @@ public class RagPattern implements Pattern {
     @Override
     @SuppressWarnings("null")
     public void run(Scanner scanner) {
-        System.out.println("Ask for Chuck Norris jokes or facts ('exit' to quit).");
-        System.out.println("Context is deterministically retrieved from the in-memory Chuck Norris knowledge store.");
+        System.out.println("Spør om Chuck Norris-vitser eller fakta ('avslutt' eller 'exit' for å avslutte).");
+        System.out.println("Kontekst hentes deterministisk fra den interne Chuck Norris-kunnskapsbasen.");
 
         while (true) {
             System.out.print("> ");
@@ -37,38 +37,38 @@ public class RagPattern implements Pattern {
                 break;
             }
             String input = scanner.nextLine().trim();
-            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q")) {
-                System.out.println("Bye!");
+            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q") || input.equalsIgnoreCase("avslutt")) {
+                System.out.println("Ha det bra!");
                 return;
             }
             if (input.isEmpty()) {
                 continue;
             }
 
-            // 1. Retrieve: Application code queries the in-memory document store
+            // 1. Hent (Retrieve): Applikasjonskoden spør den interne dokumentbasen
             List<Document> matches = documentStore.search(input, 3);
 
             String context = matches.isEmpty()
-                    ? "No specific jokes found."
+                    ? "Ingen relevante vitser funnet."
                     : matches.stream()
-                            .map(doc -> "Title: " + doc.title() + "\nJoke/Fact: " + doc.content())
+                            .map(doc -> "Tittel: " + doc.title() + "\nVits/Fakta: " + doc.content())
                             .collect(Collectors.joining("\n---\n"));
 
-            // 2. Augment: Code injects retrieved context directly into the prompt
+            // 2. Berik (Augment): Koden injiserer den hentede konteksten direkte i prompten
             String augmentedPrompt = """
-                    You are a witty assistant sharing Chuck Norris jokes and lore.
-                    Answer the user's request accurately using ONLY the provided context below.
-                    If no relevant joke is found in the context, humorously state that Chuck Norris has not revealed that secret to this database yet.
+                    Du er en vittig assistent som deler Chuck Norris-vitser og historier. Du svarer alltid på norsk!
+                    Svar nøyaktig på brukerens forespørsel ved å KUN bruke den oppgitte konteksten nedenfor.
+                    Hvis det ikke finnes noen relevant vits i konteksten, skal du humoristisk si at Chuck Norris ikke har avslørt den hemmeligheten for denne databasen ennå.
 
-                    Context:
+                    Kontekst:
                     ---
                     %s
                     ---
 
-                    User Question: %s
+                    Brukerspørsmål: %s
                     """.formatted(context, input);
 
-            // 3. Generate: LLM produces the grounded response
+            // 3. Generer (Generate): LLM produserer det forankrede svaret
             String response = chatClient.prompt(augmentedPrompt).call().content();
             if (response != null) {
                 System.out.println(response);

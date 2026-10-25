@@ -6,8 +6,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * An in-memory document database preloaded with Chuck Norris jokes and facts.
- * Implements token-matching and keyword-scoring search without requiring an external embedding model.
+ * En intern minnebasert dokumentdatabase forhåndslastet med Chuck Norris-vitser og fakta.
+ * Implementerer token-matching og nøkkelord-scoring uten behov for en ekstern embedding-modell.
  */
 public class InMemoryDocumentStore {
 
@@ -15,6 +15,11 @@ public class InMemoryDocumentStore {
     }
 
     private static final Set<String> STOP_WORDS = Set.of(
+            // Norske stoppord
+            "og", "i", "jeg", "det", "en", "et", "den", "til", "er", "som", "på",
+            "de", "med", "han", "av", "ikke", "der", "så", "var", "meg", "seg", "men",
+            "ett", "har", "om", "vi", "min", "mitt", "ha", "hadde", "hva", "hvem", "hvor", "hvordan",
+            // Engelske stoppord
             "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "he",
             "in", "is", "it", "its", "of", "on", "that", "the", "to", "was", "were",
             "will", "with", "what", "how", "when", "where", "which", "who", "why"
@@ -23,44 +28,44 @@ public class InMemoryDocumentStore {
     private final List<Document> documents = List.of(
             new Document(
                     "chuck-infinity",
-                    "Chuck Norris and Counting",
-                    "Chuck Norris counted to infinity. Twice.",
-                    List.of("infinity", "counting", "math", "numbers", "limits")
+                    "Chuck Norris og telling (Counting)",
+                    "Chuck Norris talte til uendeligheten. To ganger.",
+                    List.of("infinity", "uendelighet", "counting", "telling", "math", "matte", "numbers", "tall", "limits", "grenser")
             ),
             new Document(
                     "chuck-compilers",
-                    "Chuck Norris and Compilers",
-                    "Chuck Norris does not compile his code. The compiler apologizes and runs it anyway. "
-                            + "Chuck Norris's code never has bugs, only undocumented features that hardware is not yet evolved enough to comprehend.",
-                    List.of("compiler", "code", "bugs", "programming", "java", "hardware")
+                    "Chuck Norris og kompilatorer (Compilers)",
+                    "Chuck Norris kompilerer ikke koden sin. Kompilatoren ber om unnskyldning og kjører den likevel. "
+                            + "Koden til Chuck Norris har aldri bugs (compiler bugs), bare udokumenterte funksjoner som maskinvaren ennå ikke er utviklet nok til å forstå.",
+                    List.of("compiler", "kompilator", "code", "kode", "bugs", "programming", "programmering", "java", "hardware", "maskinvare")
             ),
             new Document(
                     "chuck-databases",
-                    "Chuck Norris and Databases",
-                    "Chuck Norris doesn't query SQL databases. He stares at them until they confess the data. "
-                            + "A database table will drop itself before returning a NULL value to Chuck Norris.",
-                    List.of("database", "sql", "query", "null", "tables", "postgres")
+                    "Chuck Norris og databaser (Databases)",
+                    "Chuck Norris gjør ikke spørringer mot SQL-databaser. Han stirrer på dem til de tilstår dataene. "
+                            + "En databasetabell vil heller slette seg selv (drop table) enn å returnere en NULL-verdi til Chuck Norris.",
+                    List.of("database", "databaser", "sql", "query", "spørring", "null", "tables", "tabeller", "postgres")
             ),
             new Document(
                     "chuck-ai",
-                    "Chuck Norris and Artificial Intelligence",
-                    "Chuck Norris does not need RAG or LLMs. When Chuck Norris inputs a prompt, the AI hallucinates reality "
-                            + "to match Chuck Norris's expectations. Azure datacenters run entirely on the kinetic energy of Chuck Norris roundhouse kicks.",
-                    List.of("ai", "rag", "llm", "azure", "agent", "prompt", "kick")
+                    "Chuck Norris og kunstig intelligens (Artificial Intelligence)",
+                    "Chuck Norris trenger ikke RAG eller store språkmodeller (LLMs). Når Chuck Norris taster inn en prompt, hallusinerer den kunstige intelligensen virkeligheten "
+                            + "for å matche forventningene til Chuck Norris. Azure-datasentre drives utelukkende av den kinetiske energien fra Chuck Norris sine rundspark.",
+                    List.of("ai", "ki", "kunstig intelligens", "rag", "llm", "azure", "agent", "prompt", "kick", "rundspark")
             ),
             new Document(
                     "chuck-git",
-                    "Chuck Norris and Git",
-                    "Chuck Norris never needs git merge or rebase. His commits simply push directly to production without tests, "
-                            + "because production is too terrified to crash.",
-                    List.of("git", "commit", "merge", "rebase", "production", "deploy", "tests")
+                    "Chuck Norris og Git",
+                    "Chuck Norris trenger aldri git merge eller rebase. Commitsene hans pushes rett til produksjon uten tester, "
+                            + "fordi produksjon er for livredd til å krasje.",
+                    List.of("git", "commit", "merge", "rebase", "production", "produksjon", "deploy", "tests", "tester")
             ),
             new Document(
                     "chuck-networking",
-                    "Chuck Norris and Networking",
-                    "Chuck Norris doesn't use TCP/IP. Packets reach their destination purely out of fear and respect. "
-                            + "He can ping 127.0.0.1 from Mars with zero millisecond latency.",
-                    List.of("network", "ping", "packets", "latency", "internet", "tcp")
+                    "Chuck Norris og nettverk (Networking)",
+                    "Chuck Norris bruker ikke TCP/IP. Datapakker når destinasjonen sin utelukkende av frykt og respekt. "
+                            + "Han kan pinge 127.0.0.1 fra Mars med null millisekunder forsinkelse (latency).",
+                    List.of("network", "nettverk", "ping", "packets", "pakker", "latency", "forsinkelse", "internet", "internett", "tcp")
             )
     );
 
@@ -120,7 +125,7 @@ public class InMemoryDocumentStore {
     }
 
     private Set<String> extractTokens(String text) {
-        String[] words = text.toLowerCase(Locale.ROOT).split("[^a-zA-Z0-9]+");
+        String[] words = text.toLowerCase(Locale.ROOT).split("[^a-zA-Z0-9æøåÆØÅ]+");
         Set<String> tokens = new HashSet<>();
         for (String word : words) {
             if (word.length() > 1 && !STOP_WORDS.contains(word)) {

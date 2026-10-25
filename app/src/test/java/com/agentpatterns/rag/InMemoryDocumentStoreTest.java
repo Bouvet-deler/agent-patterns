@@ -30,6 +30,15 @@ class InMemoryDocumentStoreTest {
     }
 
     @Test
+    void searchWithNorwegianKeywordsReturnsRelevantDocuments() {
+        List<Document> results = store.search("uendelighet", 2);
+        assertNotNull(results);
+        assertFalse(results.isEmpty());
+        assertTrue(results.getFirst().title().contains("telling")
+                || results.getFirst().content().contains("uendeligheten"));
+    }
+
+    @Test
     void searchWithEmptyQueryReturnsDefaultDocuments() {
         List<Document> results = store.search("", 2);
         assertNotNull(results);

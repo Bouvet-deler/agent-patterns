@@ -7,11 +7,13 @@ import org.springframework.ai.chat.client.ChatClient;
 import com.agentpatterns.Pattern;
 
 /**
- * Direct Prompting / Chat Pattern:
- * A simple conversational exchange with the LLM without tools, workflows, or RAG.
- * Serves as the foundational baseline to contrast with agentic workflows and autonomous agents.
+ * Direkte prompt / samtale:
+ * En enkel samtaleutveksling med språkmodellen uten verktøy, arbeidsflyter eller RAG.
+ * Fungerer som et referansepunkt for å sammenligne med arbeidsflyter og autonome agenter.
  */
 public class Chat implements Pattern {
+
+    private static final String SYSTEM_PROMPT = "Du er en hjelpsom assistent som alltid svarer på norsk.";
 
     private final ChatClient chatClient;
 
@@ -21,22 +23,26 @@ public class Chat implements Pattern {
 
     @Override
     public void run(Scanner scanner) {
-        System.out.println("Chat freely with the LLM (no tools, workflows, or RAG - 'exit' to quit).");
+        System.out.println("Snakk fritt med språkmodellen (ingen verktøy, arbeidsflyter eller RAG – skriv 'avslutt' eller 'exit' for å avslutte).");
         while (true) {
             System.out.print("> ");
             if (!scanner.hasNextLine()) {
                 break;
             }
             String input = scanner.nextLine().trim();
-            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q")) {
-                System.out.println("Bye!");
+            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q") || input.equalsIgnoreCase("avslutt")) {
+                System.out.println("Ha det bra!");
                 return;
             }
             if (input.isEmpty()) {
                 continue;
             }
 
-            String response = chatClient.prompt(input).call().content();
+            String response = chatClient.prompt()
+                    .system(SYSTEM_PROMPT)
+                    .user(input)
+                    .call()
+                    .content();
             System.out.println(response);
         }
     }

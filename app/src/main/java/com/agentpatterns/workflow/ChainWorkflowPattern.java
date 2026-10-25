@@ -15,9 +15,11 @@ import jakarta.annotation.Nonnull;
 // Workflow pattern combining routing (intent classification) and prompt
 // chaining (fixed multi-step pipeline). The code hardcodes the sequence; the
 // LLM only fills in content or classification decisions at each step.
+@SuppressWarnings("null")
 public class ChainWorkflowPattern implements Pattern {
 
     private static final Path FILE = Path.of("file.txt");
+    private static final String SYSTEM_PROMPT = "Du er en flink assistent som alltid svarer på norsk!";
 
     private final ChatClient chatClient;
 
@@ -27,12 +29,15 @@ public class ChainWorkflowPattern implements Pattern {
 
     @Override
     public void run(Scanner scanner) {
-        System.out.println("Type an instruction for file.txt ('read' to view it, 'exit' to quit).");
+        System.out.println("Skriv en instruksjon for file.txt ('les'/'read' for å se den, 'avslutt'/'exit' for å avslutte).");
         while (true) {
             System.out.print("> ");
+            if (!scanner.hasNextLine()) {
+                break;
+            }
             String input = scanner.nextLine().trim();
-            if (input.equalsIgnoreCase("exit")) {
-                System.out.println("Bye!");
+            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q") || input.equalsIgnoreCase("avslutt")) {
+                System.out.println("Ha det bra!");
                 return;
             } else if (!input.isEmpty()) {
                 System.out.println(callChainWorkflow(input));
@@ -40,112 +45,138 @@ public class ChainWorkflowPattern implements Pattern {
         }
     }
 
+    /**
+     * Kontrollflyt-metode som koordinerer arbeidsflyten:
+     * 1. Ruting: Analyserer brukerens intensjon (chat, lese eller skrive).
+     * 2. Forgrening: Kaller det tilhørende steget basert på ruten.
+     */
     @Nonnull
     private String callChainWorkflow(String instruction) {
-
-        final String userQuery = "Query: %s".formatted(instruction);
-
-        final String prompt =  "Du er en flink assistent som alltid svarer på norsk!" + "\n" + userQuery;
-
-        // Step 1: route the user intent
-        final String routerPrompt = """
-            %s
-
-            Analyser brukerintensjonen. 
-            
-            Hvis brukeren kun vil chit chatte
-            sett chat til true, ellers false.
-            
-            Hvis brukeren vil lese filen
-            sett read til true, ellers false.
-
-            Hvis brukeren vil editere filen
-            sett write til true, ellers false.
-            """.formatted(prompt);
-
-        final Route route = chatClient
-            .prompt(routerPrompt == null ? "skriv noe tull": routerPrompt)
-            .call()
-            .entity(Route.class);
-
-        // Step 2: chat route
-        if (route != null && route.chat) {
-            final String response = chatClient
-                    .prompt(userQuery == null ? "skriv noe tull": prompt)
-                    .call()
-                    .content();
-            return response;
-        } 
-
-        // Step 3: read route
-        if (route != null && route.read) {
-            String content = read();
-            final String readPrompt = """
-                    %s        
-
-                    Under Innhold er det som står skrevet i file.txt.
-                    Hvis Innhold er tomt, er fila tom.
-                    Innhold: %s
-                    """.formatted(prompt, content);
-            
-            final String response = chatClient
-                    .prompt(readPrompt == null ? "skriv noe tull": readPrompt)
-                    .call()
-                    .content();
-            return response;
+        Route route = routeIntent(instruction);
+        if (route == null) {
+            return "Noe gikk galt under ruting av forespørselen.";
         }
 
-        // Step 4: write route (prompt chain: draft -> refine)
-        if (route != null && route.write) {
+        if (route.chat()) {
+            return handleChat(instruction);
+        }
+        if (route.read()) {
+            return handleRead(instruction);
+        }
+        if (route.write()) {
+            return handleWrite(instruction);
+        }
 
-            String content = read();
-            
-            final String readPrompt = """
-                %s
+        return "Noe gikk galt: ukjent rute.";
+    }
 
-                Du skal lese det som står i innhold og fylle content kun med det brukeren etterspør.
-                Ber brukeren om å fjerne så skal Innhold være tom string.
-                Ber brukeren om å rette skrivefeil skal du kun gjøre det. 
+    // Steg 1: Ruting (intensjonsklassifisering)
+    private Route routeIntent(String instruction) {
+        return chatClient.prompt()
+                .system("""
+                        Du er en assistent som ruter brukerhenvendelser.
 
-                Innhold: %s
-                """.formatted(prompt, content);
-
-            final Draft draft = chatClient
-                .prompt(readPrompt == null ? "skriv noe tull" : readPrompt)
+                        Analyser brukerens intensjon og sett nøyaktig én av disse til true:
+                        - chat: hvis brukeren vil prate løst
+                        - read: hvis brukeren vil lese eller se innholdet i file.txt
+                        - write: hvis brukeren vil endre, legge til eller slette i file.txt
+                        """)
+                .user(instruction)
                 .call()
-                .entity(Draft.class); 
-            
-            final String updatePrompt = """
-                %s
+                .entity(Route.class);
+    }
 
-                Din oppgave er 
-                1. Å fylle ut "content" med det som står under Innhold.
-                2. Skriv et kort, naturlig svar i første person til brukeren i "reply"
+    // Steg 2: Enkel chat-rute
+    private String handleChat(String instruction) {
+        String response = chatClient.prompt()
+                .system(SYSTEM_PROMPT)
+                .user(instruction)
+                .call()
+                .content();
 
-                ---
+        return response != null ? response : "Ingen respons fra modellen.";
+    }
 
-                Innhold: 
-                %s
-                """.formatted(prompt, draft == null ? "": draft.content());
-            
-            FileUpdate update = chatClient
-                .prompt(updatePrompt == null ? "skriv noe tull" : updatePrompt)
+    // Steg 3: Lese-rute (injiserer filinnhold i system-prompt)
+    private String handleRead(String instruction) {
+        String content = read();
+
+        String response = chatClient.prompt()
+                .system("""
+                        %s
+
+                        Nåværende innhold i file.txt:
+                        \"\"\"
+                        %s
+                        \"\"\"
+
+                        Svar på brukerens henvendelse basert på dette innholdet.
+                        Hvis innholdet er tomt, informer brukeren om at filen er tom.
+                        """.formatted(SYSTEM_PROMPT, content))
+                .user(instruction)
+                .call()
+                .content();
+
+        return response != null ? response : "Ingen respons fra modellen.";
+    }
+
+    // Steg 4: Skrive-rute som demonstrerer sekvensiell prompt-kjede (Prompt Chaining)
+    private String handleWrite(String instruction) {
+        String currentContent = read();
+
+        // Kjedesteg 4a: Modellen analyserer ønsket endring og lager et utkast (Draft)
+        Draft draft = chatClient.prompt()
+                .system("""
+                        %s
+
+                        Nåværende innhold i file.txt:
+                        \"\"\"
+                        %s
+                        \"\"\"
+
+                        Oppgave:
+                        Les innholdet og fyll 'content' kun med det brukeren ber om.
+                        Hvis brukeren ber om å tømme eller fjerne innholdet, skal 'content' være en tom streng.
+                        Hvis brukeren ber om å rette skrivefeil, skal du kun rette disse.
+                        """.formatted(SYSTEM_PROMPT, currentContent))
+                .user(instruction)
+                .call()
+                .entity(Draft.class);
+
+        String draftedContent = draft != null && draft.content() != null ? draft.content() : "";
+
+        // Kjedesteg 4b: Neste prompt tar utkastet, kvalitetssikrer det og formulerer svar til brukeren
+        FileUpdate update = chatClient.prompt()
+                .system("""
+                        %s
+
+                        Foreslått innhold fra forrige steg i kjeden:
+                        \"\"\"
+                        %s
+                        \"\"\"
+
+                        Oppgave:
+                        1. Fyll ut 'content' med det endelige innholdet som skal lagres i filen.
+                        2. Skriv et kort, naturlig svar i første person til brukeren i 'reply'.
+                        """.formatted(SYSTEM_PROMPT, draftedContent))
+                .user(instruction)
                 .call()
                 .entity(FileUpdate.class);
 
-            if (update != null) {
-                write(update.content());
-                return update.reply();
-            }
-        }        
-        return "Noe gikk galt";
+        // Kjedesteg 4c: Deterministisk kode lagrer til fil og returnerer responsen
+        if (update != null && update.content() != null) {
+            write(update.content());
+            return update.reply() != null ? update.reply() : "Filen ble oppdatert.";
+        }
+
+        return "Noe gikk galt under oppdatering av filen.";
     }
 
-    private record Route(@Nonnull boolean chat, @Nonnull boolean read, @Nonnull boolean write){}
+    private record Route(@Nonnull boolean chat, @Nonnull boolean read, @Nonnull boolean write) {}
 
-    private record Draft(String content) {};
-    private record FileUpdate(String content, String reply) {
-    }
+    private record Draft(String content) {}
+
+    private record FileUpdate(String content, String reply) {}
 
     private String read() {
         try {

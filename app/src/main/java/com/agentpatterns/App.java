@@ -42,7 +42,7 @@ public class App implements CommandLineRunner {
         try (Scanner scanner = new Scanner(System.in)) {
             if (args.length > 0) {
                 Pattern pattern = resolvePattern(args[0]);
-                System.out.println("Running pattern: " + args[0]);
+                System.out.println("Kjører mønster: " + args[0]);
                 pattern.run(scanner);
                 return;
             }
@@ -54,11 +54,11 @@ public class App implements CommandLineRunner {
     private void selectAndRunPattern(Scanner scanner) {
         while (true) {
             System.out.println();
-            System.out.println("Select a pattern to run (type 'exit' to quit):");
-            System.out.println("  1) chat     - Direct prompt / simple chat (no tools)");
-            System.out.println("  2) workflow - Routing + Prompt Chaining");
-            System.out.println("  3) agent    - Autonomous agent with file & search tools");
-            System.out.println("  4) rag      - Retrieval-Augmented Generation (Chuck Norris DB)");
+            System.out.println("Velg et mønster å kjøre (skriv 'avslutt' eller 'exit' for å avslutte):");
+            System.out.println("  1) chat     - Direkte prompt / enkel chat (ingen verktøy)");
+            System.out.println("  2) workflow - Ruting + sekvensielle prompter (Prompt Chaining)");
+            System.out.println("  3) agent    - Autonom agent med fil- og søkeverktøy");
+            System.out.println("  4) rag      - Retrieval-Augmented Generation (Chuck Norris-database)");
             System.out.print("> ");
 
             if (!scanner.hasNextLine()) {
@@ -66,8 +66,8 @@ public class App implements CommandLineRunner {
             }
             String input = scanner.nextLine().trim();
 
-            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q")) {
-                System.out.println("Bye!");
+            if (input.equalsIgnoreCase("exit") || input.equalsIgnoreCase("q") || input.equalsIgnoreCase("avslutt")) {
+                System.out.println("Ha det bra!");
                 break;
             }
             if (input.isEmpty()) {
@@ -75,32 +75,32 @@ public class App implements CommandLineRunner {
             }
 
             String patternName = switch (input.toLowerCase()) {
-                case "1", "chat", "baseline" -> "chat";
-                case "2", "workflow" -> "workflow";
+                case "1", "chat", "baseline", "prat" -> "chat";
+                case "2", "workflow", "arbeidsflyt" -> "workflow";
                 case "3", "agent" -> "agent";
                 case "4", "rag" -> "rag";
                 default -> null;
             };
 
             if (patternName != null) {
-                System.out.println("Running pattern: " + patternName);
+                System.out.println("Kjører mønster: " + patternName);
                 Pattern pattern = resolvePattern(patternName);
                 pattern.run(scanner);
                 break;
             } else {
-                System.out.println("Invalid selection. Please choose 1, 2, 3, 4, or type 'exit'.");
+                System.out.println("Ugyldig valg. Vennligst velg 1, 2, 3, 4, eller skriv 'avslutt'.");
             }
         }
     }
 
     private Pattern resolvePattern(String name) {
         return switch (name.toLowerCase()) {
-            case "1", "chat", "baseline" -> new Chat(chatClient);
-            case "2", "workflow" -> new ChainWorkflowPattern(chatClient);
+            case "1", "chat", "baseline", "prat" -> new Chat(chatClient);
+            case "2", "workflow", "arbeidsflyt" -> new ChainWorkflowPattern(chatClient);
             case "3", "agent" -> new AgentPattern(chatClient, fileTools, knowledgeTools);
             case "4", "rag" -> new RagPattern(chatClient, documentStore);
             default -> throw new IllegalArgumentException(
-                    "Unknown pattern '" + name + "'. Available: chat, workflow, agent, rag");
+                    "Ukjent mønster '" + name + "'. Tilgjengelige: chat, workflow, agent, rag");
         };
     }
 }

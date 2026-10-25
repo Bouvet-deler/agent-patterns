@@ -10,7 +10,7 @@ import com.agentpatterns.rag.InMemoryDocumentStore;
 import com.agentpatterns.rag.InMemoryDocumentStore.Document;
 
 /**
- * A Spring AI tool that enables autonomous agents to query the in-memory Chuck Norris facts database.
+ * Et Spring AI-verktøy som lar autonome agenter søke i den interne Chuck Norris-kunnskapsbasen.
  */
 public class KnowledgeTools {
 
@@ -20,12 +20,12 @@ public class KnowledgeTools {
         this.documentStore = documentStore;
     }
 
-    @Tool(description = "Search the knowledge base for verified Chuck Norris jokes, facts, and programming lore")
+    @Tool(description = "Søk i kunnskapsbasen etter bekreftede Chuck Norris-vitser, fakta og programmeringsvisdom")
     public String searchKnowledgeBase(
-            @ToolParam(description = "Keywords or topic to search for Chuck Norris jokes (e.g. database, compiler, infinity, AI, git)") String query) {
+            @ToolParam(description = "Nøkkelord eller tema for å søke etter Chuck Norris-vitser (f.eks. database, kompilator, uendelighet, AI, git)") String query) {
         List<Document> results = documentStore.search(query, 3);
         if (results.isEmpty()) {
-            return "No matching Chuck Norris jokes found for: " + query;
+            return "Fant ingen matchende Chuck Norris-vitser for: " + query;
         }
 
         return results.stream()

@@ -38,4 +38,14 @@ class AppTest {
         System.setIn(new ByteArrayInputStream("4\nexit\n".getBytes()));
         assertDoesNotThrow(() -> App.main(new String[] {}));
     }
+
+    @Test void menuSelectWithNorwegianAvslutt() {
+        System.setIn(new ByteArrayInputStream("avslutt\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {}));
+    }
+
+    @Test void workflowPatternRunsWithNorwegianAlias() {
+        System.setIn(new ByteArrayInputStream("avslutt\n".getBytes()));
+        assertDoesNotThrow(() -> App.main(new String[] {"arbeidsflyt"}));
+    }
 }
